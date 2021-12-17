@@ -6,7 +6,7 @@ using NUnit.Framework;
 namespace AoC_2021
 {
     [TestFixture]
-    public class Task17
+    public class Task17_2
     {
         [Test]
         [TestCaseSource(nameof(GenerateTestCases))]
@@ -21,9 +21,9 @@ namespace AoC_2021
             var vx0Min = (int)Math.Ceiling((-1 + Math.Sqrt(1 + 8 * x1)) / 2.0);
 
             var vy0Max = Math.Abs(y1) - 1;
-            var vy0Min = 0;
+            var vy0Min = y1 - 1;
 
-            var yMax = -1;
+            var hs = new HashSet<(int,int)>();
 
             for (var vx0 = vx0Min; vx0 <= vx0Max; ++vx0)
             for (var vy0 = vy0Min; vy0 <= vy0Max; ++vy0)
@@ -41,23 +41,18 @@ namespace AoC_2021
 
                     if (x >= x1 && x <= x2)
                     {
-                        var h = (vy0 + 1) * vy0 / 2;
-                        if (yMax < h)
-                        {
-                            yMax = h;
-                        }
+                        hs.Add((vx0, vy0));
                     }
                 }
             }
 
-            yMax.Should().Be(expected);
+            hs.Count.Should().Be(expected);
         }
 
         private static IEnumerable<TestCaseData> GenerateTestCases()
         {
-            yield return new TestCaseData(@"target area: x=6..9, y=-1..-4", 6, 9, -3, 0, 3);
-            yield return new TestCaseData(@"target area: x=20..30, y=-10..-5", 20, 30, -10, -5, 45);
-            yield return new TestCaseData(@"target area: x=139..187, y=-148..-89", 139, 187, -148, -89, 10878);
+            yield return new TestCaseData(@"target area: x=20..30, y=-10..-5", 20, 30, -10, -5, 112);
+            yield return new TestCaseData(@"target area: x=139..187, y=-148..-89", 139, 187, -148, -89, 4716);
         }
     }
 }
