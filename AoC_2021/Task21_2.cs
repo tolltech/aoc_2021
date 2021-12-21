@@ -27,61 +27,56 @@ namespace AoC_2021
             max.Should().Be(expected);
         }
 
-        private static (long Win1, long Win2) Turn(Game game, int winScore,
-            Dictionary<Game, (long Win1, long Win2)> cache = null)
+        private static (long Win1, long Win2) Turn(Game game, int winScore)
         {
-            cache ??= new Dictionary<Game, (long Win1, long Win2)>();
+            var cache = new Dictionary<Game, long> { { game, 1 } };
 
-            if (cache.TryGetValue(game, out var v))
+            var nextGames = new PriorityQueue<Game, long>();
+            nextGames.Enqueue(game, 0);
+
+            while (nextGames.Count > 0)
             {
-                return v;
-            }
+                var currentGame = nextGames.Dequeue();
+                var currentCached = cache[currentGame];
 
-            if (game.Player1Score >= winScore)
-            {
-                return (1, 0);
-            }
-
-            if (game.Player2Score >= winScore)
-            {
-                return (0, 1);
-            }
-
-            var nextGames = new List<Game>(27);
-            for (var i = 1; i <= 3; ++i)
-            for (var j = 1; j <= 3; ++j)
-            for (var k = 1; k <= 3; ++k)
-            {
-                var newGame = game;
-                var die = i + j + k;
-
-                if (game.TurnIsPlayer1)
+                for (var i = 1; i <= 3; ++i)
+                for (var j = 1; j <= 3; ++j)
+                for (var k = 1; k <= 3; ++k)
                 {
-                    newGame.Player1Position = (game.Player1Position - 1 + die) % 10 + 1;
-                    newGame.Player1Score += newGame.Player1Position;
-                }
-                else
-                {
-                    newGame.Player2Position = (game.Player2Position - 1 + die) % 10 + 1;
-                    newGame.Player2Score += newGame.Player2Position;
-                }
+                    var newGame = currentGame;
+                    var die = i + j + k;
 
-                newGame.TurnIsPlayer1 = !game.TurnIsPlayer1;
+                    if (currentGame.TurnIsPlayer1)
+                    {
+                        newGame.Player1Position = (currentGame.Player1Position - 1 + die) % 10 + 1;
+                        newGame.Player1Score += newGame.Player1Position;
+                    }
+                    else
+                    {
+                        newGame.Player2Position = (currentGame.Player2Position - 1 + die) % 10 + 1;
+                        newGame.Player2Score += newGame.Player2Position;
+                    }
 
-                nextGames.Add(newGame);
+                    newGame.TurnIsPlayer1 = !currentGame.TurnIsPlayer1;
+
+                    if (cache.ContainsKey(newGame))
+                    {
+                        cache[newGame] += currentCached;
+                    }
+                    else
+                    {
+                        cache[newGame] = currentCached;
+
+                        if (newGame.MaxScore < winScore)
+                            nextGames.Enqueue(newGame, newGame.Player1Score + newGame.Player2Score);
+                    }
+                }
             }
 
-            var win1 = 0L;
-            var win2 = 0L;
-            foreach (var nextGame in nextGames.OrderByDescending(x => Math.Max(x.Player1Score, x.Player2Score)))
-            {
-                var turn = Turn(nextGame, winScore, cache);
-                cache[nextGame] = turn;
-                win1 += turn.Win1;
-                win2 += turn.Win2;
-            }
-
-            return (win1, win2);
+            return (
+                cache.Where(x => x.Key.Player1Score >= winScore).Sum(x => x.Value),
+                cache.Where(x => x.Key.Player2Score >= winScore).Sum(x => x.Value)
+            );
         }
 
         struct Game
@@ -91,14 +86,14 @@ namespace AoC_2021
             public long Player1Score;
             public long Player2Score;
             public bool TurnIsPlayer1;
+
+            public long MaxScore => Player1Score > Player2Score ? Player1Score : Player2Score;
         }
 
         private static IEnumerable<TestCaseData> GenerateTestCases()
         {
-            yield return new TestCaseData(0, 0, 2, 5L);
-            yield return new TestCaseData(0, 0, 3, 14L);
             yield return new TestCaseData(4, 8, 21, 444356092776315L);
-            yield return new TestCaseData(7, 5, 21, 0L);
+            yield return new TestCaseData(7, 5, 21, 809953813657517L);
         }
     }
 }
