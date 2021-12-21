@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
 using FluentAssertions;
 using NUnit.Framework;
 
@@ -21,16 +19,24 @@ namespace AoC_2021
                 Player2Position = start2,
                 Player1Score = 0,
                 Player2Score = 0,
-                NextTurnIsPlayer1 = true
+                TurnIsPlayer1 = true
             };
-            
+
             var wins = Turn(game, winScore);
             var max = Math.Max(wins.Win1, wins.Win2);
             max.Should().Be(expected);
         }
 
-        private static (long Win1, long Win2) Turn(Game game, int winScore)
+        private static (long Win1, long Win2) Turn(Game game, int winScore,
+            Dictionary<Game, (long Win1, long Win2)> cache = null)
         {
+            cache ??= new Dictionary<Game, (long Win1, long Win2)>();
+
+            if (cache.TryGetValue(game, out var v))
+            {
+                return v;
+            }
+
             if (game.Player1Score >= winScore)
             {
                 return (1, 0);
@@ -41,12 +47,15 @@ namespace AoC_2021
                 return (0, 1);
             }
 
-            var turns = new List<(long Win1, long Win2)>(3);
-            for (var die = 1; die <= 3; ++die)
+            var nextGames = new List<Game>(27);
+            for (var i = 1; i <= 3; ++i)
+            for (var j = 1; j <= 3; ++j)
+            for (var k = 1; k <= 3; ++k)
             {
                 var newGame = game;
-                newGame.NextTurnIsPlayer1 = !newGame.NextTurnIsPlayer1;
-                if (game.NextTurnIsPlayer1)
+                var die = i + j + k;
+
+                if (game.TurnIsPlayer1)
                 {
                     newGame.Player1Position = (game.Player1Position - 1 + die) % 10 + 1;
                     newGame.Player1Score += newGame.Player1Position;
@@ -57,11 +66,22 @@ namespace AoC_2021
                     newGame.Player2Score += newGame.Player2Position;
                 }
 
-                var turn = Turn(newGame, winScore);
-                turns.Add(turn);
+                newGame.TurnIsPlayer1 = !game.TurnIsPlayer1;
+
+                nextGames.Add(newGame);
             }
 
-            return (turns.Select(x => x.Win1).Sum(), turns.Select(x => x.Win2).Sum());
+            var win1 = 0L;
+            var win2 = 0L;
+            foreach (var nextGame in nextGames.OrderByDescending(x => Math.Max(x.Player1Score, x.Player2Score)))
+            {
+                var turn = Turn(nextGame, winScore, cache);
+                cache[nextGame] = turn;
+                win1 += turn.Win1;
+                win2 += turn.Win2;
+            }
+
+            return (win1, win2);
         }
 
         struct Game
@@ -70,7 +90,7 @@ namespace AoC_2021
             public int Player2Position;
             public long Player1Score;
             public long Player2Score;
-            public bool NextTurnIsPlayer1;
+            public bool TurnIsPlayer1;
         }
 
         private static IEnumerable<TestCaseData> GenerateTestCases()
