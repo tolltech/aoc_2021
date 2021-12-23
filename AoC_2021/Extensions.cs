@@ -47,5 +47,15 @@ namespace AoC_2021
 
             return sb.ToString();
         }
+
+        public static HashSet<T> ToHashSet<T>(this IEnumerable<T> ts)
+        {
+            return new HashSet<T>(ts);
+        }
+        
+        public static TValue SafeGet<TKey, TValue>(this IDictionary<TKey, TValue> dict, TKey key, TValue val = default)
+        {
+            return dict.TryGetValue(key, out var v) ? v : val;
+        }
     }
 }
